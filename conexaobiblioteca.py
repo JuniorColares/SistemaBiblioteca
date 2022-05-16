@@ -7,8 +7,57 @@ def criar_conexao(host, database, user, password):
         password = password)
     return conexao
 
+
+# FUNÇÕES COM OS MENUS:
+
 def menu_inicial():
-    pass
+    print("-----------------------------------------------------")
+    print("|              Escolha a opção desejada             |")
+    print("|                                                   |")
+    print("|                                                   |")
+    print("| (1) Menu Livros                                   |")
+    print("| (2) Menu Associados                               |")
+    print("| (3) Realizar Locação de livro                     |")
+    print("| (4) Encerrar sistema                              |")
+    print("|                                                   |")
+    print("|                                                   |")
+    print("-----------------------------------------------------") 
+
+def menu_livros():
+    print("-----------------------------------------------------")
+    print("|              Escolha a opção desejada             |")
+    print("|                                                   |")
+    print("|                                                   |")
+    print("|                                                   |")
+    print("| (1) Cadastrar Livro                               |")
+    print("| (2) Consultar livros cadastrados                  |")
+    print("| (3) Consultar livro pelo título                   |")
+    print("| (4) Alugar livro                                  |")
+    print("| (5) Devolver livro                                |")
+    print("| (6) Alterar cadastro de livro                     |")
+    print("| (7) Excluir livro                                 |")
+    print("| (8) Voltar para o menu principal                  |")
+    print("|                                                   |")
+    print("|                                                   |")
+    print("|                                                   |")
+    print("-----------------------------------------------------") 
+
+def menu_associados():
+    print("-----------------------------------------------------")
+    print("|              Escolha a opção desejada             |")
+    print("|                                                   |")
+    print("|                                                   |")
+    print("| (1) Cadastrar Associado                           |")
+    print("| (2) Buscar Associado                              |")
+    print("| (3) Alterar Associado                             |")
+    print("| (4) Excluir Associado                             |")
+    print("| (5) Voltar para o menu principal                  |")
+    print("|                                                   |")
+    print("|                                                   |")
+    print("-----------------------------------------------------")
+
+
+#FUNÇÕES PARA O MENU LIVROS:
 
 def cadastrar_livro(conexao, cursor):
     titulo = input('Título: ')
@@ -103,3 +152,52 @@ def excluir_livro(conexao, cursor):
             print('Livro excluído')
     else:
         print('Código inexistente!')
+
+
+#FUNÇÕES PARA MENU ASSOCIADOS: 
+
+def cadatrar_associado(conexao, cursor):
+    nome = input('Nome: ')
+    nome = nome.replace("'",'')
+    cpf = input('CPF: ')
+    cpf = cpf.replace('.','')
+    cpf = cpf.replace('-','')
+    cursor.execute(f'insert into associados (nome_associado, cpf, qtd_alugueis_feitos, pendencia) values ("{nome}", "{cpf}", 0, "NÃO")')
+    conexao.commit()
+
+def buscar_associado(cursor):
+    query = input('Busca: ')
+    query = query.replace("'",'')
+    cursor.execute(f'select * from associados where nome_associado like "%{query}%"')
+    associados = cursor.fetchall()
+    if associados != []:
+        for i in associados:
+            print(f'\nCod: {i[0]:03.0f}')
+            print(f'Nome: {i[1]}')
+            print(f'Pendência: {i[4]}')
+    else:
+        print('Nenhum usuário encontrado!')
+    
+def alterar_associado(conexao, cursor):
+    cod = int(input('Informe o código do associado que deseja alterar: '))
+    nome = input('Informe para qual nome deseja alterar: ')
+    cursor.execute(f'update associados set nome_associado = "{nome}" where id_associado = {cod}')
+    conexao.commit()
+    print('Alteração realizada!')
+
+def excluir_associado(conexao, cursor):
+    cod = int(input('Informe o código do associado que deseja excluir: '))
+    cursor.execute(f'select * from associados where id_associado = {cod}')
+    associado = cursor.fetchone()
+    if associado != None:
+        conf = input(f'Tem certeza que deseja excluir o cadastro de {associado[1]}? (s/n) ')
+        if conf == 'n':
+            print('Exclusão cancelada!')
+        elif conf == 's':
+            cursor.execute(f'delete from associados where id_associado = {cod}')
+            conexao.commit()
+            print('Associado excluído!')
+        else:
+            print('Comando inválido')
+    else:
+        print('Nenhum usuário encontrado!')
