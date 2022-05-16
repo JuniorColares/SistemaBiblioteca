@@ -12,6 +12,7 @@ def menu_inicial():
 
 def cadastrar_livro(conexao, cursor):
     titulo = input('Título: ')
+    titulo = titulo.replace("'",'')
     autor = input('Autor: ')
     editora = input('Editora: ')
     ano = int(input('Ano: '))
@@ -33,6 +34,7 @@ def listar_livros(cursor):
 
 def pesquisar_livro(cursor):
     pesquisa = input('Pesquisa: ')
+    pesquisa = pesquisa.replace("'",'')
     cursor.execute(f"select * from livros where titulo like '%{pesquisa}%'")
     livros = cursor.fetchall()
     for i in livros:
@@ -70,6 +72,7 @@ def alterar_livro(conexao, cursor):
     if query.lower() == 't':
         cod = int(input('Informe o código do livro que deseja alterar o título: '))
         titulo = input('Informe o novo título: ')
+        titulo = titulo.replace("'",'')
         cursor.execute(f'update livros set titulo = "{titulo}" where id_livro = {cod}')
         print('Alteração realizada')
     elif query.lower() == 'a':
