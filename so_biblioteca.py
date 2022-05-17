@@ -2,7 +2,7 @@ import conexaobiblioteca as connect
 import os
 
 #COLOCAR O NOME DO BANCO DE DADOS E A SENHA NOS LOCAIS INDICADOS
-conexao = connect.criar_conexao('localhost', 'NOME DO DB','root','SENHA')
+conexao = connect.criar_conexao('localhost', 'NOME DB','root','SENHA')
 
 if conexao.is_connected():
     cursor = conexao.cursor()
@@ -78,12 +78,15 @@ while True:
                 a = input('')
             if op == '5':
                 break
-
     if op == '3':
         pass
 
     if op == '4':
         break
+    if op == '5':
+        continue
+    if op == '9':
+        continue
     else:
         print('Comando inválido!')
         a = input('')
