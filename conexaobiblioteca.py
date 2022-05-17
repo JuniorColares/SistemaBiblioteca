@@ -36,7 +36,8 @@ def menu_livros():
     print("| (5) Devolver livro                                |")
     print("| (6) Alterar cadastro de livro                     |")
     print("| (7) Excluir livro                                 |")
-    print("| (8) Voltar para o menu principal                  |")
+    print("| (8) Consultar alugueis                            |")
+    print("| (9) Voltar para o menu principal                  |")
     print("|                                                   |")
     print("|                                                   |")
     print("|                                                   |")
@@ -98,12 +99,36 @@ def alugar_livro(conexao, cursor):
     aluguel = int(input('Digite o código do livro que deseja alugar: '))
     cursor.execute(f'SELECT disponibilidade FROM livros WHERE id_livro = {aluguel}')
     disp = cursor.fetchone()
-    if disp[0] == 'DISPONÍVEL' or disp[0] == 'DISPONIVEL':
-        cursor.execute(f'UPDATE livros SET disponibilidade = "ALUGADO" WHERE id_livro = {aluguel}')
-        conexao.commit()
-        print('Livro alugado com sucesso!')
+    associado = int(input('Código do associado: '))
+    cursor.execute(f'SELECT pendencia FROM associados where id_associado = {associado}')
+    pend = cursor.fetchone()
+    if pend[0] == 'NÃO':
+        if disp[0] == 'DISPONÍVEL' or disp[0] == 'DISPONIVEL':
+            cursor.execute(f'UPDATE livros SET disponibilidade = "ALUGADO" WHERE id_livro = {aluguel}')
+            conexao.commit()
+            cursor.execute(f'UPDATE associados SET pendencia = "SIM" WHERE id_associado = {associado}')
+            conexao.commit()
+            cursor.execute(f'SELECT titulo FROM livros WHERE id_livro = {aluguel}')
+            titulo = cursor.fetchone()
+            cursor.execute(f'SELECT nome_associado FROM associados WHERE id_associado = {associado}')
+            nome = cursor.fetchone()
+            cursor.execute(f'insert into alugueis (titulo, nome_associado, data_aluguel, data_devolucao) values ("{titulo[0]}", "{nome[0]}", curdate(), date_add(now(), interval 7 day))')
+            conexao.commit()
+            print('Livro alugado com sucesso!')
+        else:
+            print('Livro indisponíel!')
     else:
-        print('Livro indisponíel!')
+        print('O associado possui pendência na biblioteca!')
+    
+def consultar_pendencias(cursor):
+    cursor.execute('select * from alugueis')
+    alugueis = cursor.fetchall()
+    for i in alugueis:
+        print(f'\nTitulo: {i[1]}')
+        print(f'Associado: {i[2]}')
+        print(f'Data do aluguel: {i[3]}')
+        print(f'Data de devolução: {i[4]}')    
+    
     
 def devolver_livro(conexao, cursor):    
     devolucao = int(input('Digite o código do livro que deseja devolver: '))

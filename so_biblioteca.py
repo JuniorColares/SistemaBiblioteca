@@ -2,7 +2,7 @@ import conexaobiblioteca as connect
 import os
 
 #COLOCAR O NOME DO BANCO DE DADOS E A SENHA NOS LOCAIS INDICADOS
-conexao = connect.criar_conexao('localhost', 'NOME DO DB','root','SENHA')
+conexao = connect.criar_conexao('localhost', 'db_biblioteca','root','admin')
 
 if conexao.is_connected():
     cursor = conexao.cursor()
@@ -46,6 +46,10 @@ while True:
                 connect.excluir_livro(conexao, cursor)
                 a = input('')
             elif op == '8':
+                os.system('cls' if os.name == 'nt' else 'clear')
+                connect.consultar_pendencias(cursor)
+                a = input('')
+            elif op == '9':
                 break
             else:
                 print('Opção Inexistente!')
@@ -77,7 +81,7 @@ while True:
 
     if op == '3':
         pass
-    
+
     if op == '4':
         break
     else:
