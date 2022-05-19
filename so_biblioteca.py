@@ -2,7 +2,7 @@ import conexaobiblioteca as connect
 import os
 
 #COLOCAR O NOME DO BANCO DE DADOS E A SENHA NOS LOCAIS INDICADOS
-conexao = connect.criar_conexao('localhost', 'NOME DB','root','SENHA')
+conexao = connect.criar_conexao('localhost', 'db_biblioteca','root','SENHA')
 
 if conexao.is_connected():
     cursor = conexao.cursor()
