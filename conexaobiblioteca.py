@@ -1,3 +1,4 @@
+from sqlite3 import connect
 import mysql.connector
 
 def criar_conexao(host, database, user, password):
@@ -67,7 +68,7 @@ def cadastrar_livro(conexao, cursor):
     editora = input('Editora: ')
     ano = int(input('Ano: '))
     disponibilidade = 'DISPONÍVEL'
-    cursor.execute(f"INSERT INTO Livros (titulo, autor, editora, ano, disponibilidade) VALUES ('{titulo}', '{autor}', '{editora}', {ano}, '{disponibilidade}')")
+    cursor.execute(f"INSERT INTO Livros (titulo_livro, autor_livro, editora_livro, ano_edicao, disponibilidade_livro) VALUES ('{titulo}', '{autor}', '{editora}', {ano}, '{disponibilidade}')")
     conexao.commit()
     print('Livro cadastrado com sucesso!')
 
@@ -85,7 +86,7 @@ def listar_livros(cursor):
 def pesquisar_livro(cursor):
     pesquisa = input('Pesquisa: ')
     pesquisa = pesquisa.replace("'",'')
-    cursor.execute(f"SELECT * FROM livros WHERE titulo LIKE '%{pesquisa}%'")
+    cursor.execute(f"SELECT * FROM livros WHERE titulo_livro LIKE '%{pesquisa}%'")
     livros = cursor.fetchall()
     for i in livros:
         print(f'\nCod: {i[0]:03.0f}')
@@ -97,22 +98,29 @@ def pesquisar_livro(cursor):
 
 def alugar_livro(conexao, cursor):
     aluguel = int(input('Digite o código do livro que deseja alugar: '))
-    cursor.execute(f'SELECT disponibilidade FROM livros WHERE id_livro = {aluguel}')
+    cursor.execute(f'SELECT disponibilidade_livro FROM livros WHERE id_livro = {aluguel}')
     disp = cursor.fetchone()
     associado = int(input('Código do associado: '))
-    cursor.execute(f'SELECT pendencia FROM associados where id_associado = {associado}')
-    pend = cursor.fetchone()
-    if pend[0] == 'NÃO':
-        if disp[0] == 'DISPONÍVEL' or disp[0] == 'DISPONIVEL':
-            cursor.execute(f'UPDATE livros SET disponibilidade = "ALUGADO" WHERE id_livro = {aluguel}')
+    cursor.execute(f'SELECT n_livros_alugados FROM associados where id_associado = {associado}')
+    qtd = cursor.fetchone()
+    qtd = int(qtd[0])
+    
+    if qtd < 3:
+        if disp[0] == 'DISPONÍVEL':
+            cursor.execute(f'UPDATE livros SET disponibilidade_livro = "ALUGADO" WHERE id_livro = {aluguel}')
             conexao.commit()
-            cursor.execute(f'UPDATE associados SET pendencia = "SIM" WHERE id_associado = {associado}')
+            cursor.execute(f'UPDATE associados SET n_livros_alugados = {qtd+1} WHERE id_associado = {associado}')
             conexao.commit()
-            cursor.execute(f'SELECT titulo FROM livros WHERE id_livro = {aluguel}')
+            if qtd + 1 == 3:
+                cursor.execute(f'UPDATE associados SET pendencia_associado = "SIM" WHERE id_associado = {associado}')
+                conexao.commit()
+            cursor.execute(f'SELECT titulo_livro FROM livros WHERE id_livro = {aluguel}')
             titulo = cursor.fetchone()
             cursor.execute(f'SELECT nome_associado FROM associados WHERE id_associado = {associado}')
             nome = cursor.fetchone()
-            cursor.execute(f'insert into alugueis (nome_associado, titulo, data_aluguel, data_devolucao, status_devolucao) values ("{nome[0]}", "{titulo[0]}", curdate(), date_add(now(), interval 7 day), "ALUGADO")')
+            cursor.execute(f'insert into alugueis (nome_associado, titulo_livro, data_aluguel, data_limite, data_devolucao, multa) values ("{nome[0]}", "{titulo[0]}", curdate(), date_add(now(), interval 7 day), null, 0)')
+            conexao.commit()
+            cursor.execute(f'insert into arquivo (nome_associado, titulo_livro, data_aluguel, data_limite) values ("{nome[0]}", "{titulo[0]}", curdate(), date_add(now(), interval 7 day))')
             conexao.commit()
             print('Livro alugado com sucesso!')
         else:
@@ -124,35 +132,47 @@ def consultar_pendencias(cursor):
     cursor.execute('select * from alugueis')
     alugueis = cursor.fetchall()
     for i in alugueis:
-        print(f'\nAssociado: {i[1]}')
+        print(f'\nCod aluguel: {i[0]}')
+        print(f'Associado: {i[1]}')
         print(f'Título: {i[2]}')
         print(f'Data do aluguel: {i[3]}')
-        print(f'Data de devolução: {i[4]}')
-        print(f'Status: {i[5]}')    
+        print(f'Data limite: {i[4]}')
+        print(f'Data de devolução: {i[5]}')
+        if i[5] is None:
+            print("Status: Alugado")
+        else:
+            print('Status: Devolvido')    
     
     
 def devolver_livro(conexao, cursor):    
     aluguel = int(input('Digite o código do livro que deseja devolver: '))
-    cursor.execute(f'SELECT disponibilidade FROM livros WHERE id_livro = {aluguel}')
+    cursor.execute(f'SELECT disponibilidade_livro FROM livros WHERE id_livro = {aluguel}')
     disp = cursor.fetchone()
     associado = int(input('Código do associado: '))
-    cursor.execute(f'SELECT pendencia FROM associados where id_associado = {associado}')
-    pend = cursor.fetchone()
-    if pend[0] == 'SIM':
+    cursor.execute(f'SELECT n_livros_alugados FROM associados where id_associado = {associado}')
+    qtd = cursor.fetchone()
+    qtd = int(qtd[0])
+    if qtd > 0:
         if disp[0] == 'ALUGADO':
-            cursor.execute(f'UPDATE livros SET disponibilidade = "DISPONIVEL" WHERE id_livro = {aluguel}')
+            cursor.execute(f'UPDATE livros SET disponibilidade_livro = "DISPONÍVEL" WHERE id_livro = {aluguel}')
             conexao.commit()
-            cursor.execute(f'UPDATE associados SET pendencia = "NÃO" WHERE id_associado = {associado}')
+            cursor.execute(f'UPDATE associados SET n_livros_alugados = {qtd - 1} WHERE id_associado = {associado}')
             conexao.commit()
-            cursor.execute(f'SELECT nome_associado FROM associados WHERE id_associado = {associado}')
-            nome = cursor.fetchone()
-            cursor.execute(f'UPDATE alugueis set status_devolucao = "DEVOLVIDO" where nome_associado = "{nome[0]}"')
+            if qtd != 3:
+                cursor.execute(f'UPDATE associados SET pendencia_associado = "NÃO" where id_associado = {associado}')
+                conexao.commit()
+            cursor.execute(f'SELECT titulo_livro FROM livros WHERE id_livro = {aluguel}')
+            titulo = cursor.fetchone()
+            cursor.execute(f'UPDATE alugueis set data_devolucao = curdate() where titulo_livro = "{titulo[0]}"')
             conexao.commit()
-            print('Livro alugado com sucesso!')
+            #FAZER O CALCULO DOS JUROS SE HOUVEREM
+            cursor.execute(f'delete from alugueis where titulo_livro = "{titulo[0]}"')
+            conexao.commit()
+            print('Livro devolvido com sucesso!')
         else:
-            print('Livro indisponíel!')
+            print('Livro não alugado!')
     else:
-        print('O associado possui pendência na biblioteca!')
+        print('O associado não possui pendência na biblioteca!')
 
 def alterar_livro(conexao, cursor):
     query = input('Qual valor deseja alterar? (t)Título (a)Autor (e)Editora (an)Ano ')
@@ -160,23 +180,23 @@ def alterar_livro(conexao, cursor):
         cod = int(input('Informe o código do livro que deseja alterar o título: '))
         titulo = input('Informe o novo título: ')
         titulo = titulo.replace("'",'')
-        cursor.execute(f'UPDATE livros SET titulo = "{titulo}" WHERE id_livro = {cod}')
-        print('Alteração realizada')
+        cursor.execute(f'UPDATE livros SET titulo_livro = "{titulo}" WHERE id_livro = {cod}')
     elif query.lower() == 'a':
         cod = int(input('Informe o código do livro que deseja alterar o autor: '))
         autor = input('Informe o nome do autor: ')
-        cursor.execute(f'UPDATE livros SET autor = "{autor}" WHERE id_livro = {cod}')
+        cursor.execute(f'UPDATE livros SET autor_livro = "{autor}" WHERE id_livro = {cod}')
     elif query.lower() == 'e':
         cod = int(input('Informe o código do livro que deseja alterar a editora: '))
         editora = input('Informe a nova editora: ')
-        cursor.execute(f'UPDATE livros SET editora = "{editora}" WHERE id_livro = {cod}')
+        cursor.execute(f'UPDATE livros SET editora_livro = "{editora}" WHERE id_livro = {cod}')
     elif query.lower() == 'an':
         cod = int(input('Informe o código do livro que deseja alterar o ano: '))
         ano = int(input('Informe o novo ano: '))
-        cursor.execute(f'UPDATE livros SET ano = {ano} WHERE id_livro = {cod}')
+        cursor.execute(f'UPDATE livros SET ano_edicao = {ano} WHERE id_livro = {cod}')
     else:
         print('Comando inválido!')
     conexao.commit()
+    print('Alteração realizada')
 
 def excluir_livro(conexao, cursor):
     cod = int(input('Infome o código do livro que deseja excluir do sistema: '))
@@ -200,7 +220,7 @@ def cadatrar_associado(conexao, cursor):
     cpf = input('CPF: ')
     cpf = cpf.replace('.','')
     cpf = cpf.replace('-','')
-    cursor.execute(f'insert into associados (nome_associado, cpf, qtd_alugueis_feitos, pendencia) values ("{nome}", "{cpf}", 0, "NÃO")')
+    cursor.execute(f'insert into associados (nome_associado, cpf_associado, data_cadastro, n_livros_alugados, pendencia_associado) values ("{nome}", "{cpf}", curdate(), 0, "NÃO")')
     conexao.commit()
 
 def buscar_associado(cursor):
@@ -212,7 +232,8 @@ def buscar_associado(cursor):
         for i in associados:
             print(f'\nCod: {i[0]:03.0f}')
             print(f'Nome: {i[1]}')
-            print(f'Pendência: {i[4]}')
+            print(f'Livros alugados: {i[4]}')
+            print(f'Pendência: {i[5]}')
     else:
         print('Nenhum usuário encontrado!')
     
